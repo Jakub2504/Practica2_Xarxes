@@ -2,53 +2,124 @@ import java.io.*;
 import java.net.Socket;
 
 public class Client {
-    private static final int PORT = 1234;
     private static final String HOST = "127.0.0.1";
-    private static Socket socket;
+    private static final int PORT = 12345;
 
-    public static void main(String[] args) throws IOException {
-        try {
-            socket = new Socket(HOST, PORT);
-            System.out.println("Connectat al servidor.");
+    public static void main(String[] args) {
+        try (Socket socket = new Socket(HOST, PORT);
+             DataInputStream in = new DataInputStream(socket.getInputStream());
+             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+             BufferedReader userInput = new BufferedReader(new InputStreamReader(System.in))) {
 
-            // Establir canals d'entrada i sortida de dades.
-            DataInputStream serverIn = new DataInputStream(socket.getInputStream());
-            DataOutputStream clientOut = new DataOutputStream(socket.getOutputStream());
+            System.out.println("Connected to server.");
 
-            // Manejar la señal SIGINT per tancar el client correctament
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                try {
-                    System.out.println("Tancant el client...");
-                    clientOut.writeUTF("FI"); // Enviar missatge de tancament al servidor
-                    clientOut.flush();
-                    socket.close();
-                } catch (IOException e) {
-                    System.err.println("Error al tancar el client: " + e.getMessage());
+            while (true) {
+                printMenu();
+                int option = getOption(userInput);
+                out.writeInt(option);
+
+                switch (option) {
+                    case 1:
+                        listTitles(in);
+                        break;
+                    case 2:
+                        getBookInfo(userInput, out, in);
+                        break;
+                    case 3:
+                        addBook(userInput, out, in);
+                        break;
+                    case 4:
+                        deleteBook(userInput, out, in);
+                        break;
+                    case 5:
+                        System.out.println("Exiting...");
+                        return;
+                    default:
+                        System.out.println("Invalid option!");
                 }
-            }));
-            // Crear thread per llegir missatges des de la consola i enviar-los al servidor.
-            Thread consoleReaderThread = new Thread(() -> {
-                try {
-                    BufferedReader consoleIn = new BufferedReader(new InputStreamReader(System.in));
-                    String userInput;
-                    while ((userInput = consoleIn.readLine()) != null) {
-                        if (!userInput.isEmpty()) {
-                            clientOut.writeUTF(userInput);
-                            clientOut.flush();
-                        }
-                        if (userInput.equalsIgnoreCase("FI")) {
-                            break;
-                        }
-                    }
-                    System.out.println("Finalitzada la conversa.");
-                    System.exit(0); // Acabar el client quan es finalitza desde la consola.
-                } catch (IOException e) {
-                    System.err.println("Error al llegir de la consola: " + e.getMessage());
-                }
-            });
-            consoleReaderThread.start();
-        } catch (IOException e) {
-            System.err.println("Error en el client: " + e.getMessage());
+            }
+        } catch (IOException ex) {
+            System.err.println("Error connecting to server!");
+            ex.printStackTrace();
+        }
+    }
+
+    private static void printMenu() {
+        System.out.println("Menu:");
+        System.out.println("1 - List all titles");
+        System.out.println("2 - Get book info");
+        System.out.println("3 - Add a book");
+        System.out.println("4 - Delete a book");
+        System.out.println("5 - Quit");
+    }
+
+    private static int getOption(BufferedReader userInput) throws IOException {
+        System.out.print("Enter option: ");
+        return Integer.parseInt(userInput.readLine());
+    }
+
+    private static void listTitles(DataInputStream in) throws IOException {
+        int numBooks = in.readInt();
+        System.out.println("Number of books: " + numBooks);
+
+        for (int i = 0; i < numBooks; i++) {
+            String title = in.readUTF();
+            System.out.println(title);
+        }
+    }
+
+    private static void getBookInfo(BufferedReader userInput, DataOutputStream out, DataInputStream in) throws IOException {
+        System.out.print("Enter book title: ");
+        String title = userInput.readLine();
+        out.writeUTF(title);
+
+        String response = in.readUTF();
+        if (response.equals("FOUND")) {
+            int length = in.readInt();
+            byte[] bookBytes = new byte[length];
+            in.readFully(bookBytes);
+            BookInfo book = BookInfo.fromBytes(bookBytes);
+            System.out.println(book);
+        } else {
+            System.out.println("Book not found.");
+        }
+    }
+
+    private static void addBook(BufferedReader userInput, DataOutputStream out, DataInputStream in) throws IOException {
+        System.out.println("Enter book details:");
+        System.out.print("Title: ");
+        String title = userInput.readLine();
+        System.out.print("Pages: ");
+        int pages = Integer.parseInt(userInput.readLine());
+        System.out.print("Author: ");
+        String author = userInput.readLine();
+        System.out.print("Series: ");
+        String series = userInput.readLine();
+
+        BookInfo book = new BookInfo(title, pages, author, series);
+        byte[] bookBytes = book.toBytes();
+        out.writeInt(bookBytes.length);
+        out.write(bookBytes);
+        out.flush();
+
+        String response = in.readUTF();
+        if (response.equals("ADDED")) {
+            System.out.println("Book added successfully.");
+        } else if (response.equals("ALREADY_EXISTS")) {
+            System.out.println("This book already exists in the database.");
+        }
+    }
+
+    private static void deleteBook(BufferedReader userInput, DataOutputStream out, DataInputStream in) throws IOException {
+        System.out.print("Enter book title to delete: ");
+        String title = userInput.readLine();
+        out.writeUTF(title);
+
+        String response = in.readUTF();
+        if (response.equals("DELETED")) {
+            System.out.println("Book deleted successfully.");
+        } else if (response.equals("NOT_FOUND")) {
+            System.out.println("Book not found.");
         }
     }
 }

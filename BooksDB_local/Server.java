@@ -93,15 +93,15 @@ public class Server {
         String bookDetails = in.readUTF();
         String[] details = bookDetails.split(", ");
 
-        if (details.length < 3 || details.length > 4) {
+        if (details.length < 2 || details.length > 4) {
             out.writeUTF("Invalid book details format!");
             return;
         }
 
         String title = details[0];
         int pages = Integer.parseInt(details[1]);
-        String author = (details.length == 4) ? details[2] : ""; // Si el autor está en blanco, asigna una cadena vacía
-        String series = (details.length == 4) ? details[3] : details[2]; // Si el autor está en blanco, el tercer campo es la serie, de lo contrario, el segundo campo
+        String author = (details.length >= 3) ? details[2] : "";
+        String series = (details.length == 4) ? details[3] : "";
 
         BookInfo book = new BookInfo(title, pages, author, series);
         boolean success = booksDB.insertNewBook(book);
@@ -112,6 +112,7 @@ public class Server {
             out.writeUTF("ALREADY_EXISTS");
         }
     }
+
 
     private static void deleteBook(DataInputStream in, DataOutputStream out) throws IOException {
         String title = in.readUTF();

@@ -90,11 +90,20 @@ public class Server {
     }
 
     private static void addBook(DataInputStream in, DataOutputStream out) throws IOException {
-        int length = in.readInt();
-        byte[] bookBytes = new byte[length];
-        in.readFully(bookBytes);
+        String bookDetails = in.readUTF();
+        String[] details = bookDetails.split(", ");
 
-        BookInfo book = BookInfo.fromBytes(bookBytes);
+        if (details.length < 3 || details.length > 4) {
+            out.writeUTF("Invalid book details format!");
+            return;
+        }
+
+        String title = details[0];
+        int pages = Integer.parseInt(details[1]);
+        String author = (details.length == 4) ? details[2] : ""; // Si el autor está en blanco, asigna una cadena vacía
+        String series = (details.length == 4) ? details[3] : details[2]; // Si el autor está en blanco, el tercer campo es la serie, de lo contrario, el segundo campo
+
+        BookInfo book = new BookInfo(title, pages, author, series);
         boolean success = booksDB.insertNewBook(book);
 
         if (success) {

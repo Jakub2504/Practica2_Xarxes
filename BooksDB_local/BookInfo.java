@@ -60,11 +60,11 @@ public class BookInfo {
 			result += " (" + series + ")";
 		}
 		if (author != null && !author.isEmpty()) {
-			result += ", per " + author;
+			result += ", by " + author;
 		} else {
-			result += ", anònim";
+			result += ", anonymous";
 		}
-		result += ", que té " + pages + " pàgines.";
+		result += ", that has " + pages + " pages.";
 
 		return result;
 	}

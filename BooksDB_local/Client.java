@@ -55,7 +55,13 @@ public class Client {
 
     private static int getOption(BufferedReader userInput) throws IOException {
         System.out.print("Enter option: ");
-        return Integer.parseInt(userInput.readLine());
+        try {
+            String input = userInput.readLine();
+            return Integer.parseInt(input);
+        } catch (NumberFormatException e) {
+            System.out.println("Usage for selecting option = integer.");
+            return 0;
+        }
     }
 
     private static void listTitles(DataInputStream in) throws IOException {
@@ -86,27 +92,17 @@ public class Client {
     }
 
     private static void addBook(BufferedReader userInput, DataOutputStream out, DataInputStream in) throws IOException {
-        System.out.println("Enter book details:");
-        System.out.print("Title: ");
-        String title = userInput.readLine();
-        System.out.print("Pages: ");
-        int pages = Integer.parseInt(userInput.readLine());
-        System.out.print("Author: ");
-        String author = userInput.readLine();
-        System.out.print("Series: ");
-        String series = userInput.readLine();
-
-        BookInfo book = new BookInfo(title, pages, author, series);
-        byte[] bookBytes = book.toBytes();
-        out.writeInt(bookBytes.length);
-        out.write(bookBytes);
-        out.flush();
+        System.out.print("Enter book details (Title, Pages, Author, Series): ");
+        String bookDetails = userInput.readLine();
+        out.writeUTF(bookDetails);
 
         String response = in.readUTF();
         if (response.equals("ADDED")) {
             System.out.println("Book added successfully.");
         } else if (response.equals("ALREADY_EXISTS")) {
             System.out.println("This book already exists in the database.");
+        }else if (response != "ADDED" || response != "ALREADY_EXISTS"){
+            System.out.println("Inavlid book details format.");
         }
     }
 
@@ -120,7 +116,8 @@ public class Client {
             System.out.println("Book deleted successfully.");
         } else if (response.equals("NOT_FOUND")) {
             System.out.println("Book not found.");
+        } else {
+            System.out.println(response); // Error message from server
         }
     }
 }
-

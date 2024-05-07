@@ -14,7 +14,7 @@ public class Server {
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("Client connected: " + clientSocket.getInetAddress());
+                System.out.println("Client.Client connected: " + clientSocket.getInetAddress());
 
                 // Handle client request in a separate thread
                 Thread clientThread = new Thread(() -> handleClient(clientSocket));
@@ -57,7 +57,7 @@ public class Server {
                 }
             }
             clientSocket.close();
-            System.out.println("Client disconnected: " + clientSocket.getInetAddress());
+            System.out.println("Client.Client disconnected: " + clientSocket.getInetAddress());
         } catch (IOException ex) {
             System.err.println("Error handling client request!");
             ex.printStackTrace();
